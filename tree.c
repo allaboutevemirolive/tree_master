@@ -812,8 +812,10 @@ struct _info *getinfo(char *name, char *path)
   return ent;
 }
 
+// Responsible to check how many files in a directory
 struct _info **read_dir(char *dir, int *n, int infotop)
 {
+  // printf("read_dir");
   struct comment *com;
   static char *path = NULL;
   static long pathsize;
@@ -833,6 +835,7 @@ struct _info **read_dir(char *dir, int *n, int infotop)
   dl = (struct _info **)xmalloc(sizeof(struct _info *) * (ne = MINIT));
 
   while((ent = (struct dirent *)readdir(d))) {
+    // printf("inside while");
     if (!strcmp("..",ent->d_name) || !strcmp(".",ent->d_name)) continue;
     if (Hflag && !strcmp(ent->d_name,"00Tree.html")) continue;
     if (!aflag && ent->d_name[0] == '.') continue;
@@ -1233,26 +1236,62 @@ int patmatch(char *buf, char *pat, int isdir)
  */
 void indent(int maxlevel)
 {
+
+  // printf("Number of maxlevel: %d_", maxlevel);
   int i;
 
   if (ansilines) {
     if (dirs[1]) fprintf(outfile,"\033(0");
     for(i=1; (i <= maxlevel) && dirs[i]; i++) {
       if (dirs[i+1]) {
-	if (dirs[i] == 1) fprintf(outfile,"\170   ");
-	else printf("    ");
+	      if (dirs[i] == 1) fprintf(outfile,"\170   ");
+	      else printf("    ");
       } else {
-	if (dirs[i] == 1) fprintf(outfile,"\164\161\161 ");
-	else fprintf(outfile,"\155\161\161 ");
+	      if (dirs[i] == 1) fprintf(outfile,"\164\161\161 ");
+	      else fprintf(outfile,"\155\161\161 ");
       }
     }
     if (dirs[1]) fprintf(outfile,"\033(B");
   } else {
     if (Hflag) fprintf(outfile,"\t");
+
+    // DRAW
     for(i=1; (i <= maxlevel) && dirs[i]; i++) {
-      fprintf(outfile,"%s ",
-	      dirs[i+1] ? (dirs[i]==1 ? linedraw->vert     : (Hflag? "&nbsp;&nbsp;&nbsp;" : "   ") )
-			: (dirs[i]==1 ? linedraw->vert_left:linedraw->corner));
+
+      // printf("dirname[%d] = %s\n", i, dirs[i]);
+
+      // printf("i = %d_", i);
+      // printf("Number of maxlevel: %d_", maxlevel);
+
+      // printf("dirs[%d] = %d\n", i, dirs[i]);
+
+      if (dirs[i + 1]) {
+        if (dirs[i] == 1) {
+          // printf("saveino\n");
+          // printf("_CHECKME__1");
+          fprintf(outfile, "%s ", linedraw->vert);
+        } else if (Hflag) {
+          fprintf(outfile, "&nbsp;&nbsp;&nbsp; ");
+        } else {
+          // printf("_CHECKME__2");
+          fprintf(outfile, "   ");
+        }
+      } else {
+        // printf("dirs[%d] = %d\n", i, dirs[i]);
+        if (dirs[i] == 1) {
+          // printf("_FIGHTME__1");
+          fprintf(outfile, "%s ", linedraw->vert_left);
+        } else {
+          // printf("_FIGHTME__2");
+          fprintf(outfile, "%s ", linedraw->corner);
+        }
+      }
+
+    
+    
+    
+    
+    
     }
   }
 }
@@ -1320,8 +1359,14 @@ char *do_date(time_t t)
 /**
  * Must fix this someday
  */
+
+// Print filename whether it has color or not
+// The decision of filename should be color, make by unix_printfile() function
 void printit(char *s)
 {
+
+  // printf("filename = %s\n", s);
+
   int c;
 
   if (Nflag) {
@@ -1329,47 +1374,112 @@ void printit(char *s)
     else fprintf(outfile,"%s",s);
     return;
   }
+
   if (mb_cur_max > 1) {
+
+    // printf("+++++++++++++++++");
+
     wchar_t *ws, *tp;
+
     ws = xmalloc(sizeof(wchar_t)* (c=(strlen(s)+1)));
+
+    // C = size to reserve for ws, 
+    // ws = empty bucket, 
+    // s = original string
+    // we want to copy original string to empty bucket that has reserve size
     if (mbstowcs(ws,s,c) != (size_t)-1) {
+      // printf("+++++++++++++++++");
+
       if (Qflag) putc('"',outfile);
+
+      // PRINT FILE NAME CHAR BY CHAR
       for(tp=ws;*tp && c > 1;tp++, c--) {
-	if (iswprint(*tp)) fprintf(outfile,"%lc",(wint_t)*tp);
-	else {
-	  if (qflag) putc('?',outfile);
-	  else fprintf(outfile,"\\%03o",(unsigned int)*tp);
-	}
+
+        // printf(" | c = %d | ", c);
+        // printf("+++++++++++++++++");
+	      if (iswprint(*tp)) {
+
+          fprintf(outfile,"%lc",(wint_t)*tp);
+
+          // printf("=====================");
+
+        } else {
+
+          // THIS ELSE ARM BASICALLY IGNORED
+
+          // printf("+++++++++++++++++");
+	        if (qflag) {
+            putc('?',outfile);
+          } else {
+            // printf("+++++++++++++++++");
+            fprintf(outfile,"\\%03o",(unsigned int)*tp);
+          }
+	      }
       }
-      if (Qflag) putc('"',outfile);
+
+      if (Qflag) {
+        putc('"',outfile);
+      }
       free(ws);
+
+      // printf("+++++++++++++++++|");
+
+
+      // THIS 'RETURN' IS BASICALLY THE END OF PRINTIT
+      // FIXME:
       return;
     }
+
+    // =====================================================================================
+
+
     free(ws);
+
+    // printf("+++++++++++++++++");
   }
   if (Qflag) putc('"',outfile);
+  
+  // IGNORED
   for(;*s;s++) {
+
+    
     c = (unsigned char)*s;
-#ifdef __EMX__
-    if(_nls_is_dbcs_lead(*(unsigned char*)s)){
-      putc(*s,outfile);
-      putc(*++s,outfile);
-      continue;
-    }
-#endif
+    #ifdef __EMX__
+        if(_nls_is_dbcs_lead(*(unsigned char*)s)){
+          // printf("+++++++++++++++++");
+          putc(*s,outfile);
+          putc(*++s,outfile);
+          continue;
+        }
+    #endif
+
     if((c >= 7 && c <= 13) || c == '\\' || (c == '"' && Qflag) || (c == ' ' && !Qflag)) {
       putc('\\',outfile);
-      if (c > 13) putc(c, outfile);
-      else putc("abtnvfr"[c-7], outfile);
-    } else if (isprint(c)) putc(c,outfile);
-    else {
+      if (c > 13) { 
+        putc(c, outfile); 
+      } else {
+        putc("abtnvfr"[c-7], outfile);
+      }
+
+    } else if (isprint(c)) { 
+        putc(c,outfile); 
+    } else {
       if (qflag) {
-	if (mb_cur_max > 1 && c > 127) putc(c,outfile);
-	else putc('?',outfile);
-      } else fprintf(outfile,"\\%03o",c);
+	      if (mb_cur_max > 1 && c > 127) { 
+          putc(c,outfile); 
+        } else {
+          putc('?',outfile);
+        }
+      } else {
+        fprintf(outfile,"\\%03o",c);
+      }
     }
   }
-  if (Qflag) putc('"',outfile);
+  if (Qflag) { 
+    putc('"',outfile); 
+  }
+
+  // printf("+++++++++++++++++");
 }
 
 int psize(char *buf, off_t size)

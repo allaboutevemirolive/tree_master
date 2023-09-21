@@ -68,10 +68,13 @@ void emit_tree(char **dirname, bool needfulltree)
   lc.intro();
 
   for(i=0; dirname[i]; i++) {
+
+    printf("dirname[%d] = %s | ", i, dirname[i]);
+
     if (fflag) {
       j=strlen(dirname[i]);
       do {
-	if (j > 1 && dirname[i][j-1] == '/') dirname[i][--j] = 0;
+	      if (j > 1 && dirname[i][j-1] == '/') dirname[i][--j] = 0;
       } while (j > 1 && dirname[i][j-1] == '/');
     }
     if (Hflag) htmldirlen = strlen(dirname[i]);
@@ -85,7 +88,11 @@ void emit_tree(char **dirname, bool needfulltree)
 	dir = getfulltree(dirname[i], 0, st.st_dev, &(info->size), &err);
 	n = err? -1 : 0;
       } else {
+  
+  // Ignore
 	push_files(dirname[i], &ig, &inf, TRUE);
+
+  // Responsible to check how mant file in a main dir
 	dir = read_dir(dirname[i], &n, inf != NULL);
       }
 
@@ -109,8 +116,17 @@ void emit_tree(char **dirname, bool needfulltree)
     } else {
       lc.newline(info, 0, 0, 0);
       if (dir) {
-	subtotal = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
-	subtotal.dirs++;
+
+        
+        printf("dirname[%d] = %s\n", i, dirname[i]);
+        
+
+
+	      subtotal = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
+
+        printf("==========END==========");
+
+	      subtotal.dirs++;
       }
     }
     if (dir) {
@@ -136,6 +152,10 @@ void emit_tree(char **dirname, bool needfulltree)
 
 struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, bool hasfulltree)
 {
+
+  printf("================================================ | ");
+
+
   struct totals tot = {0}, subtotal;
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
@@ -147,18 +167,46 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
   int es = (dirname[strlen(dirname) - 1] == '/');
 
+
+
+  printf("dirname = %s | ", dirname);
+
+  printf("The value of the lev is: %d | ", lev);
+
+
   // Sanity check on dir, may or may not be necessary when using --fromfile:
   if (dir == NULL || *dir == NULL) return tot;
 
+
+  // Get how many file in a dir
   for(n=0; dir[n]; n++);
+
+  printf("n = %d | ", n);
+
+
   if (topsort) qsort(dir, n, sizeof(struct _info *), topsort);
 
-  dirs[lev] = *(dir+1)? 1 : 2;
+  // dirs[lev] = *(dir+1)? 1 : 2;
+
+  // If a folder has another folder init
+  if (*(dir + 1)) {
+    printf("dirs[lev] = 1;\n");
+    dirs[lev] = 1;
+  } else {
+    printf("dirs[lev] = 2;\n");
+    dirs[lev] = 2;
+  }
+
+  
+
 
   path = xmalloc(sizeof(char) * pathlen);
 
+  // Entry for print filename
   for (;*dir != NULL; dir++) {
     lc.printinfo(dirname, *dir, lev);
+
+    // printf("Check");
 
     namelen = strlen((*dir)->name) + 1;
     if (namemax < namelen)
@@ -168,83 +216,145 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
     if (fflag) filename = path;
     else filename = (*dir)->name;
 
+    // printf("Check");
+
     descend = 0;
     err = NULL;
 
+
+    // CHECK IF CURRENT FILE IS DIRECTORY
     if ((*dir)->isdir) {
+
+      
       tot.dirs++;
 
       if (!hasfulltree) {
-	found = findino((*dir)->inode,(*dir)->dev);
-	if (!found) {
-	  saveino((*dir)->inode, (*dir)->dev);
-	}
+	      found = findino((*dir)->inode,(*dir)->dev);
+	      if (!found) {
+	        saveino((*dir)->inode, (*dir)->dev);
+	      }
       } else found = FALSE;
 
       if (!(xdev && dev != (*dir)->dev) && (!(*dir)->lnk || ((*dir)->lnk && lflag))) {
-	descend = 1;
-	newpath = path;
+	      descend = 1;
+	      newpath = path;
 
-	if ((*dir)->lnk) {
-	  if (*(*dir)->lnk == '/') newpath = (*dir)->lnk;
-	  else {
-	    if (fflag && !strcmp(dirname,"/")) sprintf(path,"%s%s",dirname,(*dir)->lnk);
-	    else sprintf(path,"%s/%s",dirname,(*dir)->lnk);
-	  }
-	  if (found) {
-	    err = "recursive, not followed";
-	    descend = -1;
-	  }
-	}
+	      if ((*dir)->lnk) {
+	        if (*(*dir)->lnk == '/') newpath = (*dir)->lnk;
+	        else {
+	          if (fflag && !strcmp(dirname,"/")) sprintf(path,"%s%s",dirname,(*dir)->lnk);
+	          else sprintf(path,"%s/%s",dirname,(*dir)->lnk);
+	        }
+	        if (found) {
+	          err = "recursive, not followed";
+	          descend = -1;
+	        }
+	      }
 
-	if ((Level >= 0) && (lev > Level)) {
-	  if (Rflag) {
-	    FILE *outsave = outfile;
-	    char *paths[2] = {newpath, NULL}, *output = xmalloc(strlen(newpath) + 13);
-	    int *dirsave = xmalloc(sizeof(int) * (lev + 2));
+        // IGNORE
+	      if ((Level >= 0) && (lev > Level)) {
 
-	    memcpy(dirsave, dirs, sizeof(int) * (lev+1));
-	    sprintf(output, "%s/00Tree.html", newpath);
-	    setoutput(output);
-	    emit_tree(paths, hasfulltree);
+          // printf("Check");
 
-	    free(output);
-	    fclose(outfile);
-	    outfile = outsave;
+	        if (Rflag) {
+	          FILE *outsave = outfile;
+	          char *paths[2] = {newpath, NULL}, *output = xmalloc(strlen(newpath) + 13);
+	          int *dirsave = xmalloc(sizeof(int) * (lev + 2));
 
-	    memcpy(dirs, dirsave, sizeof(int) * (lev+1));
-	    free(dirsave);
-	    htmldescend = 10;
-	  } else htmldescend = 0;
-	  descend = 0;
-	}
+	          memcpy(dirsave, dirs, sizeof(int) * (lev+1));
+	          sprintf(output, "%s/00Tree.html", newpath);
+	          setoutput(output);
+	          emit_tree(paths, hasfulltree);
 
-	if (descend > 0) {
-	  if (hasfulltree) {
-	    subdir = (*dir)->child;
-	    err = (*dir)->err;
-	  } else {
-	    push_files(newpath, &ig, &inf, FALSE);
-	    subdir = read_dir(newpath, &n, inf != NULL);
-	    if (!subdir && n) {
-	      err = "error opening dir";
-	      errors++;
-	    } if (flimit > 0 && n > flimit) {
-	      sprintf(err = errbuf,"%d entries exceeds filelimit, not opening dir", n);
-	      errors++;
-	      free_dir(subdir);
-	      subdir = NULL;
-	    }
-	  }
-	  if (subdir == NULL) descend = 0;
-	}
+	          free(output);
+	          fclose(outfile);
+	          outfile = outsave;
+
+	          memcpy(dirs, dirsave, sizeof(int) * (lev+1));
+	          free(dirsave);
+	          htmldescend = 10;
+	        } else htmldescend = 0;
+	        descend = 0;
+	      }
+
+        // KEEP TRACK OF FOLDER THAT HAS FILE INIT OR NOT ????
+	      if (descend > 0) {
+
+          // printf("=========Check");
+
+	        if (hasfulltree) {
+            // printf("============Check");
+
+            // IGNORE
+	          subdir = (*dir)->child;
+	          err = (*dir)->err;
+	        } else {
+
+            // printf("============Check");
+
+            // IGNORE
+	          push_files(newpath, &ig, &inf, FALSE);
+
+            // printf("newpat = %s", newpath);
+
+	          subdir = read_dir(newpath, &n, inf != NULL);
+
+            // printf("----------------------------------");
+
+	          if (!subdir && n) {
+	            err = "error opening dir";
+	            errors++;
+	          } if (flimit > 0 && n > flimit) {
+	            sprintf(err = errbuf,"%d entries exceeds filelimit, not opening dir", n);
+	            errors++;
+	            free_dir(subdir);
+	            subdir = NULL;
+	          }
+	        }
+          // printf("----------------------------------");
+	        if (subdir == NULL) {
+            descend = 0;
+          }
+          // printf("----------------------------------");
+	      }
       }
-    } else tot.files++;
+      // printf("----------------------------------");
 
+
+    } else {
+      // printf("----------------------------------");
+      // IF NOT, IT IS FILE
+      tot.files++;
+    }
+
+    // =====================================================================================
+    // printf("----------------------------------");
+
+    // PRINT FILE NAME
     needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (Jflag && errors));
+
+
+    // This recursive calls
+    //
+    // Flow of calls for the code above:
+    //
+    // lc.printfile()
+    // unix_printfile()
+    // printit()
+
+
+
+
+    // printf("-------------++++++++++++++++---------------------");
+
+    // printf("needsclosed = %d\n", n);
+
+    // =====================================================================================
+
     if (err) lc.error(err);
 
     if (descend > 0) {
+      // printf("-------------++++++++++++++++---------------------");
       lc.newline(*dir, lev, 0, 0);
 
       subtotal = listdir(newpath, subdir, lev+1, dev, hasfulltree);

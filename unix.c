@@ -38,34 +38,70 @@ int unix_printinfo(char *dirname, struct _info *file, int level)
   return 0;
 }
 
+// This will determine if filename should be colored or not
 int unix_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
+  // printf("unix_printfile");
+
+  // If color == 1, print filename with color
   int colored = FALSE, c;
 
   if (file && colorize) {
-    if (file->lnk && linktargetcolor) colored = color(file->lnkmode,file->name,file->orphan,FALSE);
-    else colored = color(file->mode,file->name,file->orphan,FALSE);
+    // printf("---------------TRUE-------------------");
+    if (file->lnk && linktargetcolor) {
+      // printf("----------------------------------");
+      colored = color(file->lnkmode,file->name,file->orphan,FALSE);
+    } else {
+      // printf("-------------ELSE---------------------");
+      colored = color(file->mode,file->name,file->orphan,FALSE);
+    }
   }
+  // printf("filename = %s\n", filename);
 
+  // printf("colored = %d\n", colored);
+
+  // PRINT FILE WHETHER IT HAS COLOR OR NOT
   printit(filename);
 
+  // printf("-------------++++++++++++++++---------------------");
+
+  // DISABLE COLOR EFFECT
   if (colored) endcolor();
 
+  // printf("filename = %s\n", filename);
+
+
+  // FIXME: Maybe redudant?
   if (file) {
+    // printf("-------------++++++++++++++++---------------------");
+
+    // IGNORED
     if (Fflag && !file->lnk) {
-      if ((c = Ftype(file->mode))) fputc(c, outfile);
+      // printf("-------------++++++++++++++++---------------------");
+      if ((c = Ftype(file->mode))) { 
+        fputc(c, outfile); 
+      }
     }
 
+    // IGNORED
     if (file->lnk) {
+      // printf("-------------++++++++++++++++---------------------");
       fprintf(outfile," -> ");
       if (colorize) colored = color(file->lnkmode,file->lnk,file->orphan,TRUE);
       printit(file->lnk);
       if (colored) endcolor();
       if (Fflag) {
-	if ((c = Ftype(file->lnkmode))) fputc(c, outfile);
+	      if ((c = Ftype(file->lnkmode))) fputc(c, outfile);
       }
     }
+    // printf("-------------++++++++++++++++---------------------");
+
+
+
+
   }
+
+  // printf("-------------++++++++++++++++---------------------");
   return 0;
 }
 
